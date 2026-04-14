@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:aa.usno.navy.mil)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:cbk.github.io)",
+      "Bash(curl:*)",
+      "WebFetch(domain:science.nasa.gov)",
+      "Bash(node:*)"
+    ]
+  }
+}

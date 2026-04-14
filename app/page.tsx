@@ -196,7 +196,7 @@ export default function Home() {
 
   const [data, setData] = useState<SunMoonData | null>(null);
   const [selectedM, setSelectedM] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<"altitude" | "magnitude">("altitude");
+  const [sortBy, setSortBy] = useState<"altitude" | "magnitude" | "size">("altitude");
   const [minAltitude, setMinAltitude] = useState(10);
   const [selectedEvent, setSelectedEvent] = useState<"rise" | "peak" | "set">("peak");
   const [loading, setLoading] = useState(false);
@@ -415,7 +415,7 @@ export default function Home() {
               </p>
             </div>
             <div className="flex rounded-lg border border-zinc-700 overflow-hidden shrink-0">
-              {(["altitude", "magnitude"] as const).map((opt) => (
+              {(["altitude", "magnitude", "size"] as const).map((opt) => (
                 <button
                   key={opt}
                   onClick={() => setSortBy(opt)}
@@ -425,37 +425,46 @@ export default function Home() {
                       : "text-zinc-500 hover:text-zinc-300"
                   }`}
                 >
-                  {opt === "altitude" ? "Altitude" : "Magnitude"}
+                  {opt === "altitude" ? "Altitude" : opt === "magnitude" ? "Magnitude" : "Size"}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="overflow-y-auto max-h-96 -mr-2 pr-2 space-y-px">
-            {[...visibleObjects].sort((a, b) =>
-              sortBy === "magnitude" ? a.magnitude - b.magnitude : b.maxAlt - a.maxAlt
-            ).map((obj) => (
-              <button
-                key={obj.m}
-                onClick={() => setSelectedM(obj.m === selectedM ? null : obj.m)}
-                className={`w-full text-left flex items-start justify-between py-2 border-b border-zinc-800 last:border-0 rounded px-1 -mx-1 transition-colors ${
-                  obj.m === selectedM ? "bg-zinc-800" : "hover:bg-zinc-800/50"
-                }`}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-white text-sm font-semibold">{obj.m}</span>
-                    {obj.common_name && (
-                      <span className="text-zinc-400 text-xs truncate">{obj.common_name}</span>
-                    )}
-                  </div>
-                  <span className="text-zinc-600 text-xs">{TYPE_LABEL[obj.type] ?? obj.type} · mag {obj.magnitude}</span>
+          <div className="overflow-y-auto max-h-96 -mr-2 pr-2">
+            <div className="grid grid-cols-[1fr_3rem_3rem_4rem] gap-x-3">
+              <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide pb-1 border-b border-zinc-800">Object</span>
+              <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide pb-1 border-b border-zinc-800 text-right">Alt</span>
+              <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide pb-1 border-b border-zinc-800 text-right">Mag</span>
+              <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide pb-1 border-b border-zinc-800 text-right">Size</span>
+              {[...visibleObjects].sort((a, b) =>
+                sortBy === "magnitude" ? a.magnitude - b.magnitude
+                : sortBy === "size" ? parseFloat(b.size) - parseFloat(a.size)
+                : b.maxAlt - a.maxAlt
+              ).map((obj) => (
+                <div key={obj.m} className="contents">
+                  <button
+                    onClick={() => setSelectedM(obj.m === selectedM ? null : obj.m)}
+                    className={`col-span-4 grid grid-cols-[1fr_3rem_3rem_4rem] gap-x-3 items-center py-1.5 border-b border-zinc-800 last:border-0 rounded px-1 -mx-1 transition-colors ${
+                      obj.m === selectedM ? "bg-zinc-800" : "hover:bg-zinc-800/50"
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-white text-sm font-semibold">{obj.m}</span>
+                        {obj.common_name && (
+                          <span className="text-zinc-400 text-xs truncate">{obj.common_name}</span>
+                        )}
+                      </div>
+                      <span className="text-zinc-600 text-xs">{TYPE_LABEL[obj.type] ?? obj.type}</span>
+                    </div>
+                    <span className="font-mono text-xs text-indigo-300 text-right">{obj.maxAlt.toFixed(0)}°</span>
+                    <span className="font-mono text-xs text-indigo-300 text-right">{obj.magnitude}</span>
+                    <span className="font-mono text-xs text-indigo-300 text-right">{obj.size}′</span>
+                  </button>
                 </div>
-                <span className="font-mono text-xs text-indigo-300 ml-3 mt-0.5 shrink-0">
-                  {obj.maxAlt.toFixed(0)}°
-                </span>
-              </button>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
