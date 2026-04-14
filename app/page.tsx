@@ -306,7 +306,7 @@ export default function Home() {
     <div className="min-h-screen bg-zinc-950 flex flex-col items-center p-4 pt-16 gap-y-1">
       <div className="flex items-stretch gap-4 flex-wrap">
       {/* Location panel */}
-      <div className="w-full max-w-sm bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-5">
+      <div className="w-80 bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-5">
         <div>
           <h1 className="text-white text-lg font-semibold">Your Location</h1>
           <p className="text-zinc-400 text-sm mt-1">
@@ -405,30 +405,31 @@ export default function Home() {
       </div>
 
       {/* Visible Messier objects panel */}
-      {visibleObjects && (
-        <div className="w-full max-w-sm bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-4">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h2 className="text-white text-lg font-semibold">Visible Tonight</h2>
-              <p className="text-zinc-500 text-sm mt-0.5">
-                {visibleObjects.length} of {messierData.length} Messier objects above {minAltitude}°
-              </p>
-            </div>
-            <div className="flex rounded-lg border border-zinc-700 overflow-hidden shrink-0">
-              {(["altitude", "magnitude", "size"] as const).map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setSortBy(opt)}
-                  className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-                    sortBy === opt
-                      ? "bg-zinc-700 text-white"
-                      : "text-zinc-500 hover:text-zinc-300"
-                  }`}
-                >
-                  {opt === "altitude" ? "Altitude" : opt === "magnitude" ? "Magnitude" : "Size"}
-                </button>
-              ))}
-            </div>
+      {(data || loading) && (
+        <div className="w-[400px] bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-4">
+          {loading && !visibleObjects && <p className="text-zinc-400 text-sm">Calculating visibility…</p>}
+          {visibleObjects && (<>
+          <div>
+            <h2 className="text-white text-lg font-semibold">Visible Tonight</h2>
+            <p className="text-zinc-500 text-sm mt-0.5">
+              {visibleObjects.length} of {messierData.length} Messier objects above {minAltitude}°
+            </p>
+          </div>
+
+          <div className="flex w-fit rounded-lg border border-zinc-700 overflow-hidden mx-auto">
+            {(["altitude", "magnitude", "size"] as const).map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setSortBy(opt)}
+                className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                  sortBy === opt
+                    ? "bg-zinc-700 text-white"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                {opt === "altitude" ? "Altitude" : opt === "magnitude" ? "Magnitude" : "Size"}
+              </button>
+            ))}
           </div>
 
           <div className="overflow-y-auto max-h-96 -mr-2 pr-2">
@@ -466,12 +467,13 @@ export default function Home() {
               ))}
             </div>
           </div>
+          </>)}
         </div>
       )}
 
       {/* Sun & Moon panel */}
       {(data || loading || fetchError) && (
-        <div className="w-full max-w-sm bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-4">
+        <div className="w-80 bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-4">
           {loading && <p className="text-zinc-400 text-sm">Fetching sun data…</p>}
           {fetchError && <p className="text-red-400 text-sm">{fetchError}</p>}
 
