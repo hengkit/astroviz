@@ -8,7 +8,8 @@
       "WebFetch(domain:cbk.github.io)",
       "Bash(curl:*)",
       "WebFetch(domain:science.nasa.gov)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

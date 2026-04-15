@@ -94,7 +94,7 @@ function moonNightMessage(
   const overlap = Math.min(sunriseMin, moonEnd) - Math.max(sunsetMin, moonStart);
 
   if (overlap <= 0) {
-    return illum < 5 ? "New Moon — ideal viewing conditions" : "Moon not visible tonight";
+    return "Moon not visible tonight";
   }
 
   const tag = illum < 10 ? "minimal light" : `${fracillum} illuminated`;
@@ -195,6 +195,7 @@ export default function Home() {
   const [geoError, setGeoError] = useState<string | null>(null);
 
   const [data, setData] = useState<SunMoonData | null>(null);
+  const [weather, setWeather] = useState<{ astronomicalData: Record<string, string>; tonight: { shortForecast: string; detailedForecast: string } | null } | null>(null);
   const [selectedM, setSelectedM] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"altitude" | "magnitude" | "size">("altitude");
   const [minAltitude, setMinAltitude] = useState(10);
@@ -228,8 +229,10 @@ export default function Home() {
     setLoading(true);
     setFetchError(null);
     setData(null);
+    setWeather(null);
 
     const tz = (-new Date().getTimezoneOffset() / 60).toString();
+    const isToday = date === new Date().toISOString().split("T")[0];
 
     try {
       const res = await fetch(
@@ -241,6 +244,11 @@ export default function Home() {
         today: json.today.properties.data,
         tomorrow: json.tomorrow.properties.data,
       });
+
+      if (isToday) {
+        const wRes = await fetch(`/api/weather?lat=${location.lat}&lng=${location.lng}`);
+        if (wRes.ok) setWeather(await wRes.json());
+      }
     } catch {
       setFetchError("Could not load sun data. Try again.");
     } finally {
@@ -488,8 +496,11 @@ export default function Home() {
                     { month: "long", day: "numeric", year: "numeric" }
                   )}
                 </p>
+                {weather?.tonight && (
+                  <p className="text-zinc-400 text-xs mt-1">Tonight: {weather.tonight.shortForecast}</p>
+                )}
                 {sunset && sunrise && (
-                  <p className="text-zinc-500 text-xs mt-1">
+                  <p className="text-zinc-400 text-xs mt-1">
                     {moonNightMessage(data.today.moondata, sunset.time, sunrise.time, data.today.fracillum)}
                   </p>
                 )}
@@ -499,6 +510,18 @@ export default function Home() {
                 <p className="text-zinc-500 text-xs uppercase tracking-wide font-medium mb-1">Sun</p>
                 <div className="divide-y divide-zinc-800">
                   {sunset && <Row label="Sunset" time={sunset.time} />}
+                  {weather?.astronomicalData && (
+                    <Row label="Astro. twilight" time={
+                      new Date(weather.astronomicalData.astronomicalTwilightEnd)
+                        .toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false })
+                    } />
+                  )}
+                  {weather?.astronomicalData && (
+                    <Row label="Astro. dawn" time={
+                      new Date(weather.astronomicalData.astronomicalTwilightBegin)
+                        .toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false })
+                    } />
+                  )}
                   {sunrise && (
                     <Row label={`Sunrise (${data.tomorrow.day_of_week})`} time={sunrise.time} />
                   )}
