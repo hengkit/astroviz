@@ -1,14 +1,27 @@
 export function parseRA(ra: string): number {
-  const m = ra.match(/(\d+)h\s*([\d.]+)m/);
-  if (!m) return 0;
-  return +m[1] + +m[2] / 60;
+  // NGC format: "05:34:27.05"
+  const c = ra.match(/(\d+):(\d+):([\d.]+)/);
+  if (c) return +c[1] + +c[2] / 60 + +c[3] / 3600;
+  // Messier format: "5h 34.5m"
+  const h = ra.match(/(\d+)h\s*([\d.]+)m/);
+  if (h) return +h[1] + +h[2] / 60;
+  return 0;
 }
 
 export function parseDec(dec: string): number {
-  const m = dec.match(/([+-]?)(\d+)°\s*(\d+)/);
-  if (!m) return 0;
-  const sign = m[1] === "-" ? -1 : 1;
-  return sign * (+m[2] + +m[3] / 60);
+  // NGC format: "+27:43:03.6"
+  const c = dec.match(/([+-]?)(\d+):(\d+):([\d.]+)/);
+  if (c) {
+    const sign = c[1] === "-" ? -1 : 1;
+    return sign * (+c[2] + +c[3] / 60 + +c[4] / 3600);
+  }
+  // Messier format: "+22° 01′"
+  const d = dec.match(/([+-]?)(\d+)°\s*(\d+)/);
+  if (d) {
+    const sign = d[1] === "-" ? -1 : 1;
+    return sign * (+d[2] + +d[3] / 60);
+  }
+  return 0;
 }
 
 function gstDeg(date: Date): number {

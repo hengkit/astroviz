@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import messierData from "@/data/messier.json";
+import ngcData from "@/data/ngc.json";
 import { parseRA, parseDec, maxAltitudeDuringNight, peakDetails, riseSetDuringNight, compassDirection } from "@/lib/astronomy";
 
 interface Location {
@@ -31,6 +31,21 @@ interface SunMoonData {
 }
 
 const TYPE_LABEL: Record<string, string> = {
+  G: "Galaxy",
+  GCl: "Globular Cluster",
+  OCl: "Open Cluster",
+  PN: "Planetary Nebula",
+  SNR: "Supernova Remnant",
+  HII: "HII Region",
+  RfN: "Reflection Nebula",
+  EmN: "Emission Nebula",
+  "Cl+N": "Cluster + Nebula",
+  DrkN: "Dark Nebula",
+  "*Ass": "Stellar Association",
+  "**": "Double Star",
+  "*": "Star",
+  Nova: "Nova",
+  // Messier legacy types
   Gc: "Globular Cluster",
   Oc: "Open Cluster",
   Sp: "Spiral Galaxy",
@@ -196,9 +211,10 @@ export default function Home() {
 
   const [data, setData] = useState<SunMoonData | null>(null);
   const [weather, setWeather] = useState<{ astronomicalData: Record<string, string>; tonight: { shortForecast: string; detailedForecast: string } | null } | null>(null);
-  const [selectedM, setSelectedM] = useState<string | null>(null);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"altitude" | "magnitude" | "size">("altitude");
-  const [minAltitude, setMinAltitude] = useState(10);
+  const [minAltitude, setMinAltitude] = useState(30);
+  const [maxMagnitude, setMaxMagnitude] = useState(6);
   const [selectedEvent, setSelectedEvent] = useState<"rise" | "peak" | "set">("peak");
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -277,7 +293,14 @@ export default function Home() {
     const sunsetDate = parseLocalTime(sunset.time, today.year, today.month, today.day);
     const sunriseDate = parseLocalTime(sunrise.time, tomorrow.year, tomorrow.month, tomorrow.day);
 
-    return messierData
+    return ngcData
+      .filter((obj) => {
+        // Cheap pre-filters before expensive altitude calculation
+        if ((obj.v_mag ?? 99) > maxMagnitude) return false;
+        const dec = parseDec(obj.dec);
+        if (90 - Math.abs(lat - dec) < minAltitude) return false;
+        return true;
+      })
       .map((obj) => ({
         ...obj,
         maxAlt: maxAltitudeDuringNight(
@@ -291,9 +314,9 @@ export default function Home() {
       }))
       .filter((obj) => obj.maxAlt >= minAltitude)
       .sort((a, b) => b.maxAlt - a.maxAlt);
-  }, [data, location.lat, location.lng, sunset, sunrise]);
+  }, [data, location.lat, location.lng, sunset, sunrise, minAltitude, maxMagnitude]);
 
-  const selectedObj = selectedM ? visibleObjects?.find((o) => o.m === selectedM) : null;
+  const selectedObj = selectedName ? visibleObjects?.find((o) => o.name === selectedName) : null;
 
   const peak = useMemo(() => {
     if (!selectedObj || !data || !sunset || !sunrise) return null;
@@ -378,6 +401,20 @@ export default function Home() {
               ))}
             </select>
           </div>
+          <div className="space-y-1">
+            <label className="text-zinc-400 text-xs font-medium uppercase tracking-wide">
+              Max magnitude
+            </label>
+            <select
+              value={maxMagnitude}
+              onChange={(e) => setMaxMagnitude(Number(e.target.value))}
+              className="w-full bg-zinc-800 text-white rounded-lg px-3 py-2 text-sm border border-zinc-700 focus:outline-none focus:border-zinc-500"
+            >
+              {[6, 8, 10, 12, 14, 16].map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <button
@@ -420,7 +457,7 @@ export default function Home() {
           <div>
             <h2 className="text-white text-lg font-semibold">Visible Tonight</h2>
             <p className="text-zinc-500 text-sm mt-0.5">
-              {visibleObjects.length} of {messierData.length} Messier objects above {minAltitude}°
+              {visibleObjects.length} of {ngcData.length} NGC objects above {minAltitude}°
             </p>
           </div>
 
@@ -447,20 +484,20 @@ export default function Home() {
               <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide pb-1 border-b border-zinc-800 text-right">Mag</span>
               <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide pb-1 border-b border-zinc-800 text-right">Size</span>
               {[...visibleObjects].sort((a, b) =>
-                sortBy === "magnitude" ? a.magnitude - b.magnitude
-                : sortBy === "size" ? parseFloat(b.size) - parseFloat(a.size)
+                sortBy === "magnitude" ? (a.v_mag ?? 99) - (b.v_mag ?? 99)
+                : sortBy === "size" ? (b.maj_ax ?? 0) - (a.maj_ax ?? 0)
                 : b.maxAlt - a.maxAlt
               ).map((obj) => (
-                <div key={obj.m} className="contents">
+                <div key={obj.name} className="contents">
                   <button
-                    onClick={() => setSelectedM(obj.m === selectedM ? null : obj.m)}
+                    onClick={() => setSelectedName(obj.name === selectedName ? null : obj.name)}
                     className={`col-span-4 grid grid-cols-[1fr_3rem_3rem_4rem] gap-x-3 items-center py-1.5 border-b border-zinc-800 last:border-0 rounded px-1 -mx-1 transition-colors ${
-                      obj.m === selectedM ? "bg-zinc-800" : "hover:bg-zinc-800/50"
+                      obj.name === selectedName ? "bg-zinc-800" : "hover:bg-zinc-800/50"
                     }`}
                   >
                     <div className="min-w-0">
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-white text-sm font-semibold">{obj.m}</span>
+                        <span className="text-white text-sm font-semibold">{obj.m ? `M${parseInt(obj.m)}` : obj.name}</span>
                         {obj.common_name && (
                           <span className="text-zinc-400 text-xs truncate">{obj.common_name}</span>
                         )}
@@ -468,8 +505,8 @@ export default function Home() {
                       <span className="text-zinc-600 text-xs">{TYPE_LABEL[obj.type] ?? obj.type}</span>
                     </div>
                     <span className="font-mono text-xs text-indigo-300 text-right">{obj.maxAlt.toFixed(0)}°</span>
-                    <span className="font-mono text-xs text-indigo-300 text-right">{obj.magnitude}</span>
-                    <span className="font-mono text-xs text-indigo-300 text-right">{obj.size}′</span>
+                    <span className="font-mono text-xs text-indigo-300 text-right">{obj.v_mag ?? "—"}</span>
+                    <span className="font-mono text-xs text-indigo-300 text-right">{obj.maj_ax ? `${obj.maj_ax}′` : "—"}</span>
                   </button>
                 </div>
               ))}
@@ -482,7 +519,7 @@ export default function Home() {
       {/* Sun & Moon panel */}
       {(data || loading || fetchError) && (
         <div className="w-80 bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-4">
-          {loading && <p className="text-zinc-400 text-sm">Fetching sun data…</p>}
+          {loading && <p className="text-zinc-400 text-sm">Retrieving additional data…</p>}
           {fetchError && <p className="text-red-400 text-sm">{fetchError}</p>}
 
           {data && (
@@ -548,7 +585,7 @@ export default function Home() {
         <div className="w-full bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-5">
           <div>
             <h2 className="text-white text-lg font-semibold">
-              {selectedObj.m}{selectedObj.common_name ? ` — ${selectedObj.common_name}` : ""}
+              {selectedObj.m ? `M${parseInt(selectedObj.m)}` : selectedObj.name}{selectedObj.common_name ? ` — ${selectedObj.common_name}` : ""}
             </h2>
             <p className="text-zinc-500 text-sm mt-0.5 font-mono">
               <span className="text-zinc-600 not-italic text-xs">RA</span> {selectedObj.ra}
@@ -557,13 +594,15 @@ export default function Home() {
           </div>
 
           <div className="flex gap-4 items-end">
-            <img
-              key={selectedObj.m}
-              src={`/messier/m${selectedObj.m.slice(1)}.webp`}
-              alt={selectedObj.m}
-              className="w-24 rounded-lg shrink-0"
-              onError={(e) => { e.currentTarget.style.display = "none"; }}
-            />
+            {selectedObj.m && (
+              <img
+                key={selectedObj.name}
+                src={`/messier/m${parseInt(selectedObj.m)}.webp`}
+                alt={selectedObj.name}
+                className="w-24 rounded-lg shrink-0"
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
+            )}
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-zinc-500 text-xs uppercase tracking-wide font-medium">
