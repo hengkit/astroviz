@@ -45,6 +45,7 @@ const TYPE_LABEL: Record<string, string> = {
   "**": "Double Star",
   "*": "Star",
   Nova: "Nova",
+  Neb: "Nebula",
   // Messier legacy types
   Gc: "Globular Cluster",
   Oc: "Open Cluster",
@@ -157,7 +158,7 @@ function Compass({ risePoint, peakPoint, setPoint, selected }: {
     return null;
   })();
 
-  const selectedXY = selected === "rise" ? (rXY ?? pXY) : selected === "set" ? (sXY ?? pXY) : pXY;
+
   const dots: { xy: { x: number; y: number }; key: string }[] = [
     ...(rXY ? [{ xy: rXY, key: "rise" }] : []),
     { xy: pXY, key: "peak" },
@@ -165,7 +166,7 @@ function Compass({ risePoint, peakPoint, setPoint, selected }: {
   ];
 
   return (
-    <svg viewBox="0 0 120 120" width="120" height="120" className="shrink-0">
+    <svg viewBox="0 0 120 120" width="192" height="192" className="shrink-0">
       <circle cx={cx} cy={cy} r={59} fill="#18181b" stroke="#3f3f46" strokeWidth="1" />
       {Array.from({ length: 36 }, (_, i) => i * 10).map((deg) => {
         const major = deg % 90 === 0;
@@ -183,10 +184,8 @@ function Compass({ risePoint, peakPoint, setPoint, selected }: {
         return <text key={label} x={lx} y={ly + 4} textAnchor="middle"
           fill="#71717a" fontSize="11" fontFamily="sans-serif">{label}</text>;
       })}
-      {arcPath && <path d={arcPath} fill="none" stroke="#4f46e5" strokeWidth="1.5"
+      {arcPath && <path d={arcPath} fill="none" stroke="#818cf8" strokeWidth="1.5"
         strokeOpacity="0.5" strokeLinecap="round" />}
-      <line x1={cx} y1={cy} x2={selectedXY.x} y2={selectedXY.y}
-        stroke="#818cf8" strokeWidth="2" strokeLinecap="round" />
       {dots.map(({ xy, key }) => (
         <circle key={key} cx={xy.x} cy={xy.y} r={key === selected ? 4 : 3}
           fill={key === selected ? "#818cf8" : "#4f46e5"}
@@ -335,7 +334,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col items-center p-4 pt-16 gap-y-1">
-      <div className="flex items-stretch gap-4 flex-wrap">
+      <div className="flex flex-col gap-y-4 w-fit">
+      <div className="flex items-stretch gap-4">
       {/* Location panel */}
       <div className="w-80 bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-5">
         <div>
@@ -451,7 +451,7 @@ export default function Home() {
 
       {/* Visible Messier objects panel */}
       {(data || loading) && (
-        <div className="w-[400px] bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-4">
+        <div className="w-[400px] bg-zinc-900 rounded-2xl border border-zinc-800 p-6 flex flex-col gap-4">
           {loading && !visibleObjects && <p className="text-zinc-400 text-sm">Calculating visibility…</p>}
           {visibleObjects && (<>
           <div>
@@ -477,7 +477,7 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="overflow-y-auto max-h-96 -mr-2 pr-2">
+          <div className="overflow-y-auto max-h-[480px] -mr-2 pr-2">
             <div className="grid grid-cols-[1fr_3rem_3rem_4rem] gap-x-3">
               <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide pb-1 border-b border-zinc-800">Object</span>
               <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide pb-1 border-b border-zinc-800 text-right">Alt</span>
@@ -499,7 +499,7 @@ export default function Home() {
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-white text-sm font-semibold">{obj.m ? `M${parseInt(obj.m)}` : obj.name}</span>
                         {obj.common_name && (
-                          <span className="text-zinc-400 text-xs truncate">{obj.common_name}</span>
+                          <span className="text-zinc-400 text-xs truncate">{obj.common_name.split(",").pop()!.trim()}</span>
                         )}
                       </div>
                       <span className="text-zinc-600 text-xs">{TYPE_LABEL[obj.type] ?? obj.type}</span>
@@ -580,30 +580,34 @@ export default function Home() {
         </div>
       )}
 
+      </div>
       {/* Peak azimuth panel */}
       {peak && selectedObj && (
-        <div className="w-full bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-5">
-          <div>
-            <h2 className="text-white text-lg font-semibold">
-              {selectedObj.m ? `M${parseInt(selectedObj.m)}` : selectedObj.name}{selectedObj.common_name ? ` — ${selectedObj.common_name}` : ""}
-            </h2>
-            <p className="text-zinc-500 text-sm mt-0.5 font-mono">
-              <span className="text-zinc-600 not-italic text-xs">RA</span> {selectedObj.ra}
-              <span className="text-zinc-600 not-italic text-xs ml-3">Dec</span> {selectedObj.dec}
-            </p>
-          </div>
+        <div className="w-full bg-zinc-900 rounded-2xl border border-zinc-800 p-6">
+          <div className="flex gap-6 items-stretch">
+            {/* Left column: header + image/table */}
+            <div className="flex-1 min-w-0 flex flex-col gap-5">
+              <div>
+                <h2 className="text-white text-lg font-semibold">
+                  {selectedObj.m ? `M${parseInt(selectedObj.m)}` : selectedObj.name}{selectedObj.common_name ? ` — ${selectedObj.common_name}` : ""}
+                </h2>
+                <p className="text-zinc-500 text-sm mt-0.5 font-mono">
+                  <span className="text-zinc-600 not-italic text-xs">RA</span> {selectedObj.ra}
+                  <span className="text-zinc-600 not-italic text-xs ml-3">Dec</span> {selectedObj.dec}
+                </p>
+              </div>
 
-          <div className="flex gap-4 items-end">
-            {selectedObj.m && (
-              <img
-                key={selectedObj.name}
-                src={`/messier/m${parseInt(selectedObj.m)}.webp`}
-                alt={selectedObj.name}
-                className="w-24 rounded-lg shrink-0"
-                onError={(e) => { e.currentTarget.style.display = "none"; }}
-              />
-            )}
-            <table className="w-full text-sm">
+              <div className="flex gap-4 items-start">
+                {selectedObj.m && (
+                  <img
+                    key={selectedObj.name}
+                    src={`/messier/m${parseInt(selectedObj.m)}.webp`}
+                    alt={selectedObj.name}
+                    className="w-24 rounded-lg shrink-0 self-center"
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  />
+                )}
+                <table className="w-full text-sm">
               <thead>
                 <tr className="text-zinc-500 text-xs uppercase tracking-wide font-medium">
                   <th className="text-left pb-2 font-medium"></th>
@@ -642,25 +646,31 @@ export default function Home() {
                   );
                 })}
               </tbody>
-            </table>
-            <Compass
-              risePoint={
-                peak.rise ? { bearing: peak.riseAzimuth!, altitude: 0 }
-                : peak.aboveAtSunset ? { bearing: peak.sunsetAzimuth, altitude: peak.sunsetAltitude }
-                : null
-              }
-              peakPoint={{ bearing: peak.azimuth, altitude: peak.altitude }}
-              setPoint={
-                peak.set ? { bearing: peak.setAzimuth!, altitude: 0 }
-                : peak.aboveAtSunrise ? { bearing: peak.sunriseAzimuth, altitude: peak.sunriseAltitude }
-                : null
-              }
-              selected={selectedEvent}
-            />
+                </table>
+              </div>
+            </div>
+            {/* Right column: compass spanning full height */}
+            <div className="shrink-0 flex items-center">
+              <Compass
+                risePoint={
+                  peak.rise ? { bearing: peak.riseAzimuth!, altitude: 0 }
+                  : peak.aboveAtSunset ? { bearing: peak.sunsetAzimuth, altitude: peak.sunsetAltitude }
+                  : null
+                }
+                peakPoint={{ bearing: peak.azimuth, altitude: peak.altitude }}
+                setPoint={
+                  peak.set ? { bearing: peak.setAzimuth!, altitude: 0 }
+                  : peak.aboveAtSunrise ? { bearing: peak.sunriseAzimuth, altitude: peak.sunriseAltitude }
+                  : null
+                }
+                selected={selectedEvent}
+              />
+            </div>
           </div>
         </div>
       )}
       </div>
     </div>
   );
+
 }
