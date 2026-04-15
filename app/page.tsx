@@ -233,8 +233,13 @@ export default function Home() {
         });
         setDetecting(false);
       },
-      () => {
-        setGeoError("Unable to retrieve your location.");
+      (err) => {
+        const msg: Record<number, string> = {
+          1: "Location permission denied.",
+          2: "Position unavailable — try entering coordinates manually.",
+          3: "Location request timed out.",
+        };
+        setGeoError(msg[err.code] ?? "Unable to retrieve your location.");
         setDetecting(false);
       }
     );
