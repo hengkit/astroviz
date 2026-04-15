@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Astronomy Visualization",
-  description: "Messier catalog viewer with visibility calculations for your location and date.",
+  description: "NGC catalog viewer with visibility calculations for your location and date.",
 };
 
 export default function RootLayout({

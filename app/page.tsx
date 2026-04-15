@@ -191,7 +191,7 @@ function Compass({ risePoint, peakPoint, setPoint, selected }: {
           fill={key === selected ? "#818cf8" : "#4f46e5"}
           fillOpacity={key === selected ? 1 : 0.6} />
       ))}
-      <circle cx={cx} cy={cy} r="3" fill="#818cf8" />
+      <circle cx={cx} cy={cy} r="1.5" fill="#52525b" />
     </svg>
   );
 }
