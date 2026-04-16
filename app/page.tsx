@@ -209,7 +209,7 @@ export default function Home() {
   const [geoError, setGeoError] = useState<string | null>(null);
 
   const [data, setData] = useState<SunMoonData | null>(null);
-  const [weather, setWeather] = useState<{ astronomicalData: Record<string, string>; tonight: { shortForecast: string; detailedForecast: string } | null } | null>(null);
+  const [weather, setWeather] = useState<{ astronomicalData: Record<string, string>; tonight: { shortForecast: string; detailedForecast: string; temperature: number; temperatureUnit: string; windSpeed: string; windDirection: string } | null } | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"altitude" | "magnitude" | "size">("altitude");
   const [minAltitude, setMinAltitude] = useState(30);
@@ -540,6 +540,9 @@ export default function Home() {
                 </p>
                 {weather?.tonight && (
                   <p className="text-zinc-400 text-xs mt-1">Tonight: {weather.tonight.shortForecast}</p>
+                )}
+                {weather?.tonight && (
+                  <p className="text-zinc-400 text-xs mt-0.5">{weather.tonight.temperature}°{weather.tonight.temperatureUnit} · {weather.tonight.windDirection} {weather.tonight.windSpeed}</p>
                 )}
                 {sunset && sunrise && (
                   <p className="text-zinc-400 text-xs mt-1">
