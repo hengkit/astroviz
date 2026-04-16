@@ -126,11 +126,12 @@ function moonNightMessage(
 
 interface CompassPoint { bearing: number; altitude: number; }
 
-function Compass({ risePoint, peakPoint, setPoint, selected }: {
+function Compass({ risePoint, peakPoint, setPoint, selected, peakT }: {
   risePoint: CompassPoint | null;
   peakPoint: CompassPoint;
   setPoint: CompassPoint | null;
   selected: "rise" | "peak" | "set";
+  peakT: number;
 }) {
   const cx = 60, cy = 60, r = 48;
 
@@ -146,11 +147,12 @@ function Compass({ risePoint, peakPoint, setPoint, selected }: {
   const pXY = toXY(peakPoint);
   const sXY = setPoint ? toXY(setPoint) : null;
 
-  // Quadratic bezier control point so the curve passes through peakXY at t=0.5
   const arcPath = (() => {
     if (rXY && sXY) {
-      const cpX = 2 * pXY.x - 0.5 * rXY.x - 0.5 * sXY.x;
-      const cpY = 2 * pXY.y - 0.5 * rXY.y - 0.5 * sXY.y;
+      const t = Math.max(0.05, Math.min(0.95, peakT));
+      const denom = 2 * t * (1 - t);
+      const cpX = (pXY.x - (1 - t) ** 2 * rXY.x - t ** 2 * sXY.x) / denom;
+      const cpY = (pXY.y - (1 - t) ** 2 * rXY.y - t ** 2 * sXY.y) / denom;
       return `M ${rXY.x} ${rXY.y} Q ${cpX} ${cpY} ${sXY.x} ${sXY.y}`;
     }
     if (rXY) return `M ${rXY.x} ${rXY.y} L ${pXY.x} ${pXY.y}`;
@@ -416,10 +418,16 @@ export default function Home() {
     const decDeg = parseDec(selectedObj.dec);
     const lat = Number(location.lat);
     const lng = Number(location.lng);
-    return {
+    const details = {
       ...peakDetails(raH, decDeg, lat, lng, sunsetDate, sunriseDate),
       ...riseSetDuringNight(raH, decDeg, lat, lng, sunsetDate, sunriseDate),
     };
+    const riseMs = (details.rise ?? (details.aboveAtSunset ? sunsetDate : null))?.getTime() ?? null;
+    const setMs = (details.set ?? (details.aboveAtSunrise ? sunriseDate : null))?.getTime() ?? null;
+    const peakT = (riseMs !== null && setMs !== null && setMs > riseMs)
+      ? (details.time.getTime() - riseMs) / (setMs - riseMs)
+      : 0.5;
+    return { ...details, peakT };
   }, [selectedObj, data, location.lat, location.lng, sunset, sunrise]);
 
   return (
@@ -754,6 +762,7 @@ export default function Home() {
                   : null
                 }
                 selected={selectedEvent}
+                peakT={peak.peakT}
               />
             </div>
           </div>
