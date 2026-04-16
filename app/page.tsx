@@ -196,6 +196,91 @@ function Compass({ risePoint, peakPoint, setPoint, selected }: {
   );
 }
 
+const BAND_WAVELENGTH: Record<string, number> = {
+  B: 440,
+  V: 550,
+  J: 1250,
+  H: 1650,
+};
+
+function bandWavelength(band: string): number | undefined {
+  return BAND_WAVELENGTH[band.toUpperCase()];
+}
+
+type NgcObj = { b_mag: number | null; v_mag: number | null; j_mag: number | null; h_mag: number | null };
+
+function SedChart({ obj }: { obj: NgcObj }) {
+  const bands = [
+    { label: "B", mag: obj.b_mag },
+    { label: "V", mag: obj.v_mag },
+    { label: "J", mag: obj.j_mag },
+    { label: "H", mag: obj.h_mag },
+  ]
+    .map(b => ({ ...b, wavelength: bandWavelength(b.label)! }))
+    .filter((b): b is { label: string; mag: number; wavelength: number } => b.mag !== null);
+
+  if (bands.length < 2) return <p className="text-zinc-500 text-sm">Insufficient photometry data</p>;
+
+  const W = 500, H = 180;
+  const PAD = { left: 44, right: 16, top: 16, bottom: 36 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const minWL = 380, maxWL = 1750;
+
+  const xScale = (wl: number) => PAD.left + ((wl - minWL) / (maxWL - minWL)) * chartW;
+  const yScale = (mag: number) => PAD.top + (mag / 16) * chartH;
+
+  const pts = bands.map(b => ({ ...b, x: xScale(b.wavelength), y: yScale(b.mag) }));
+
+  const yTicks = [0, 4, 8, 12, 16];
+
+  return (
+    <svg width={W} height={H} className="w-full" viewBox={`0 0 ${W} ${H}`}>
+      {/* Visible light background */}
+      <rect x={PAD.left} y={PAD.top} width={xScale(750) - PAD.left} height={chartH} fill="#27272a" />
+
+      {/* Axes */}
+      <line x1={PAD.left} y1={PAD.top} x2={PAD.left} y2={H - PAD.bottom} stroke="#3f3f46" strokeWidth="1" />
+      <line x1={PAD.left} y1={H - PAD.bottom} x2={W - PAD.right} y2={H - PAD.bottom} stroke="#3f3f46" strokeWidth="1" />
+
+      {/* Y grid + labels */}
+      {yTicks.map(m => (
+        <g key={m}>
+          <line x1={PAD.left} y1={yScale(m)} x2={W - PAD.right} y2={yScale(m)} stroke="#27272a" strokeWidth="1" />
+          <text x={PAD.left - 6} y={yScale(m) + 4} textAnchor="end" fill="#71717a" fontSize="10">{m.toFixed(1)}</text>
+        </g>
+      ))}
+
+      {/* Y axis label */}
+      <text x={10} y={H / 2} textAnchor="middle" fill="#71717a" fontSize="10"
+        transform={`rotate(-90, 10, ${H / 2})`}>Magnitude</text>
+
+      {/* X axis band labels */}
+      {pts.map(p => (
+        <g key={p.label}>
+          <line x1={p.x} y1={H - PAD.bottom} x2={p.x} y2={H - PAD.bottom + 4} stroke="#52525b" strokeWidth="1" />
+          <text x={p.x} y={H - PAD.bottom + 16} textAnchor="middle" fill="#71717a" fontSize="10">{p.label}</text>
+          <text x={p.x} y={H - PAD.bottom + 28} textAnchor="middle" fill="#52525b" fontSize="8">{p.wavelength}nm</text>
+        </g>
+      ))}
+
+      {/* Columns */}
+      {pts.map(p => (
+        <rect
+          key={p.label}
+          x={p.x - 16}
+          y={p.y}
+          width={32}
+          height={H - PAD.bottom - p.y}
+          fill="#818cf8"
+          rx="3"
+        />
+      ))}
+    </svg>
+  );
+}
+
 function parseLocalTime(timeStr: string, year: number, month: number, day: number): Date {
   const [h, m] = timeStr.split(":").map(Number);
   return new Date(year, month - 1, day, h, m);
@@ -672,6 +757,20 @@ export default function Home() {
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Filter panel */}
+      {selectedObj && (
+        <div className="w-full bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-4">
+          <div>
+            <h2 className="text-white text-lg font-semibold">Photometry</h2>
+            <p className="text-zinc-500 text-sm mt-0.5">
+              {selectedObj.m ? `M${parseInt(selectedObj.m)}` : selectedObj.name}
+              {selectedObj.common_name ? ` — ${selectedObj.common_name.split(",").pop()!.trim()}` : ""}
+            </p>
+          </div>
+          <SedChart obj={selectedObj} />
         </div>
       )}
       </div>
